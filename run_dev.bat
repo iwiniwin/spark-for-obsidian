@@ -1,2 +1,1 @@
-npm run dev
-pause
+start cmd /k "npm run dev"
