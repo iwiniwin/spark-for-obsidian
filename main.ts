@@ -68,17 +68,14 @@ export default class SparkPlugin extends Plugin {
 						let ret = old.call(this, ...args);
 						let customSortConfig = settings.customSortConfig;
 						if (customSortConfig === '' || this.file.path === "/") {
-							var sortConfig = new Set(
-								customSortConfig.split(';').map((folderPath) => {
-									return folderPath.trim();
-								})
-							);
 							let defaultOrder = 1000;
 							let arr = customSortConfig.split("\n"); // 将字符串分割为数组
 							const map = new Map();
 							arr.forEach(item => {
 								const [key, value] = item.split(":");
-								map.set(key.trim(), parseInt(value.trim())); 
+								if(typeof key === 'string' && typeof value === 'string') {
+									map.set(key.trim(), parseInt(value.trim())); 
+								}
 							});
 
 							this.vChildren.sort(function (first: any, second: any) {
