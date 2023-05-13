@@ -1,5 +1,7 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Menu, MenuItem, TAbstractFile, TFolder, Vault, FileExplorerView } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Menu, MenuItem, TAbstractFile, TFolder, Vault, FileExplorerView, FileSystemAdapter, normalizePath } from 'obsidian';
 import { around } from "monkey-around";
+import * as Path from 'path';
+const {dialog} = require('electron').remote
 // Remember to rename these classes and interfaces!
 
 let Collator = new Intl.Collator(undefined, {
@@ -18,12 +20,14 @@ const DEFAULT_SETTINGS: SparkPluginSettings = {
 
 export default class SparkPlugin extends Plugin {
 	settings: SparkPluginSettings;
+	adapter: FileSystemAdapter;
 
 	async onload() {
+		this.adapter = this.app.vault.adapter as FileSystemAdapter;
 		await this.loadSettings();
 
 		// 右键，在文件夹中搜索
-		this.addSearchInFolder();
+		this.addFileMenu();
 
 		this.app.workspace.onLayoutReady(() => {
 			this.patchFileExplorerFolder();
@@ -33,10 +37,19 @@ export default class SparkPlugin extends Plugin {
 		this.addSettingTab(new SampleSettingTab(this.app, this));
 	}
 
-	addSearchInFolder() {
+	addFileMenu() {
 		this.registerEvent(
 			this.app.workspace.on("file-menu", (menu: Menu, fileOrFolder: TAbstractFile) => {
 				if (fileOrFolder instanceof TFolder) {
+					menu.addItem((item: MenuItem) => {
+						item
+							.setTitle("添加附件")
+							.setIcon("file")
+							.onClick(() => {
+								const folderPath = fileOrFolder.path;
+								this.openDialogToSelectAttachment(folderPath);
+							});
+					});
 					menu.addItem((item: MenuItem) => {
 						item
 							.setTitle("Search in folder")
@@ -73,8 +86,8 @@ export default class SparkPlugin extends Plugin {
 							const map = new Map();
 							arr.forEach(item => {
 								const [key, value] = item.split(":");
-								if(typeof key === 'string' && typeof value === 'string') {
-									map.set(key.trim(), parseInt(value.trim())); 
+								if (typeof key === 'string' && typeof value === 'string') {
+									map.set(key.trim(), parseInt(value.trim()));
 								}
 							});
 
@@ -92,6 +105,30 @@ export default class SparkPlugin extends Plugin {
 			})
 		);
 		leaf.detach();
+	}
+
+	openDialogToSelectAttachment(folderPath: string) {
+		dialog.showOpenDialog({
+			title:'选择附件',
+			properties: ['openFile']
+		}).then((res: any) => {
+			if(res.filePaths.length <= 0) return;
+			this.addAttachmentToCurrentFolder(res.filePaths[0], folderPath)
+		}).catch((err: any) => {
+			console.error(err);
+		})
+	}
+
+	async addAttachmentToCurrentFolder(attachmentPath: string, folderPath: string) {
+		try {
+			let file = await FileSystemAdapter.readLocalFile(attachmentPath);
+			let path = normalizePath(Path.join(folderPath, Path.basename(attachmentPath)))
+			await this.adapter.writeBinary(path, file);
+			new Notice(`Add attachment "${path}" successfully`);
+		} catch (err) {
+			console.error(err)
+			new Notice(`Add attachment error : ${err}`);
+		}
 	}
 
 	onunload() {
