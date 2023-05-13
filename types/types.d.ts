@@ -14,6 +14,7 @@ declare module "obsidian" {
     }
     export interface App {
         viewRegistry: ViewRegistry;
+        saveAttachment(name: string, extension: string, img: ArrayBuffer): TFile;
     }
     export interface FileExplorerView extends View {
         dom: FileExplorerViewDom;

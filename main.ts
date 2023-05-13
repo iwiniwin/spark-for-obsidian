@@ -1,5 +1,7 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Menu, MenuItem, TAbstractFile, TFolder, Vault, FileExplorerView } from 'obsidian';
+import { App, Editor, MarkdownView, MarkdownFileInfo, Modal, Notice, Plugin, PluginSettingTab, Setting, Menu, MenuItem, TAbstractFile, TFolder, Vault, FileExplorerView, FileSystemAdapter, normalizePath } from 'obsidian';
 import { around } from "monkey-around";
+import * as path from 'path';
+const {dialog} = require('electron').remote
 // Remember to rename these classes and interfaces!
 
 let Collator = new Intl.Collator(undefined, {
@@ -18,8 +20,10 @@ const DEFAULT_SETTINGS: SparkPluginSettings = {
 
 export default class SparkPlugin extends Plugin {
 	settings: SparkPluginSettings;
+	adapter: FileSystemAdapter;
 
 	async onload() {
+		this.adapter = this.app.vault.adapter as FileSystemAdapter;
 		await this.loadSettings();
 
 		// 右键，在文件夹中搜索
@@ -28,6 +32,12 @@ export default class SparkPlugin extends Plugin {
 		this.app.workspace.onLayoutReady(() => {
 			this.patchFileExplorerFolder();
 		});
+
+		this.addCommand({
+            id: 'spark-edito-insert-image',
+            name: 'Insert Image At The Current Position',
+			editorCallback: (editor, view) => this.insertImageAtTheCurrentPosition(editor, view),
+        });
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));
@@ -92,6 +102,36 @@ export default class SparkPlugin extends Plugin {
 			})
 		);
 		leaf.detach();
+	}
+
+	insertImageAtTheCurrentPosition = async (editor: Editor, view: MarkdownView | MarkdownFileInfo) => {
+		dialog.showOpenDialog({
+			title:'请选择你喜欢的图片',
+			filters:[
+				{ name:'Image', extensions:['png', 'svg', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico'] },
+			],
+			properties: ['openFile']
+		}).then((res: any) => {
+			if(res.filePaths.length <= 0) return;
+			this.insertImageByPath(res.filePaths[0], editor, view);
+		}).catch((err: any) => {
+			console.error(err);
+		})
+	}
+
+	async insertImageByPath(path: string, editor: Editor, markdown: MarkdownView | MarkdownFileInfo) {
+		let view = markdown as MarkdownView;
+		let img = await FileSystemAdapter.readLocalFile(path);
+
+		let filename = path.replace(/^.*[\\\/]/, '');
+		let name = filename.substring(0, filename.lastIndexOf('.'));
+		let extension = filename.substring(filename.lastIndexOf('.') + 1);
+
+		let imageFile = await this.app.saveAttachment(name, extension, img);
+		let markdownLink = await this.app.fileManager.generateMarkdownLink(imageFile, view.file.path);
+		markdownLink += '\n';
+
+		editor.replaceSelection(markdownLink);
 	}
 
 	onunload() {
