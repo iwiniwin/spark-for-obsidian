@@ -1,7 +1,6 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Menu, MenuItem, TAbstractFile, TFolder, Vault, FileExplorerView, FileSystemAdapter, normalizePath } from 'obsidian';
 import { around } from "monkey-around";
 import * as Path from 'path';
-const {dialog} = require('electron').remote
 // Remember to rename these classes and interfaces!
 
 let Collator = new Intl.Collator(undefined, {
@@ -108,6 +107,7 @@ export default class SparkPlugin extends Plugin {
 	}
 
 	openDialogToSelectAttachment(folderPath: string) {
+		const {dialog} = require('electron').remote
 		dialog.showOpenDialog({
 			title:'选择附件',
 			properties: ['openFile']
