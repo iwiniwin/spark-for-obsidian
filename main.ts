@@ -42,8 +42,8 @@ export default class SparkPlugin extends Plugin {
 				if (fileOrFolder instanceof TFolder) {
 					menu.addItem((item: MenuItem) => {
 						item
-							.setTitle("添加附件")
-							.setIcon("file")
+							.setTitle("Import Attachment...")
+							.setIcon("enter")
 							.onClick(() => {
 								const folderPath = fileOrFolder.path;
 								this.openDialogToSelectAttachment(folderPath);
@@ -51,7 +51,7 @@ export default class SparkPlugin extends Plugin {
 					});
 					menu.addItem((item: MenuItem) => {
 						item
-							.setTitle("Search in folder")
+							.setTitle("Search in Folder")
 							.setIcon("search")
 							.onClick(() => {
 								const folderPath = fileOrFolder.path;
