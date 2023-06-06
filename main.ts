@@ -63,23 +63,23 @@ export default class SparkPlugin extends Plugin {
 				} else {
 					menu.addItem((item: MenuItem) => {
 						item
-							.setTitle("复制路径")
-							.setIcon("copy")
-							.onClick(() => {
-								const { clipboard } = require('electron');
-								clipboard.writeText(fileOrFolder.path);
-								new Notice(`Copied ${fileOrFolder.path}`);
-							});
-					});
-					menu.addItem((item: MenuItem) => {
-						item
-							.setTitle("复制Markdown路径")
+							.setTitle("复制Markdown链接")
 							.setIcon("copy")
 							.onClick(() => {
 								const { clipboard } = require('electron');
 								const text = `[${Path.basename(fileOrFolder.path, Path.extname(fileOrFolder.path))}](${fileOrFolder.path})`;
 								clipboard.writeText(text);
 								new Notice(`Copied ${text}`);
+							});
+					});
+					menu.addItem((item: MenuItem) => {
+						item
+							.setTitle("复制路径")
+							.setIcon("copy")
+							.onClick(() => {
+								const { clipboard } = require('electron');
+								clipboard.writeText(fileOrFolder.path);
+								new Notice(`Copied ${fileOrFolder.path}`);
 							});
 					});
 				}
