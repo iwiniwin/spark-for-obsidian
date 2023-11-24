@@ -1,7 +1,10 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Menu, MenuItem, TAbstractFile, TFolder, Vault, FileExplorerView, FileSystemAdapter, normalizePath } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, Menu, MenuItem, TAbstractFile, TFolder, Vault, FileExplorerView, FileSystemAdapter, normalizePath, WorkspaceLeaf, EditableFileView, Platform } from 'obsidian';
 import { around } from "monkey-around";
 import * as Path from 'path';
+import DiagramView from 'diagram/DiagramView';
 // Remember to rename these classes and interfaces!
+
+const DIAGRAM_VIEW_TYPE = "diagram";
 
 let Collator = new Intl.Collator(undefined, {
 	usage: "sort",
@@ -21,10 +24,40 @@ export default class SparkPlugin extends Plugin {
 	settings: SparkPluginSettings;
 	adapter: FileSystemAdapter;
 
+	private registerViewFactory(
+		View: new (leaf: WorkspaceLeaf, plugin: SparkPlugin) => EditableFileView,
+		viewType: string
+	) {
+		this.registerView(viewType, (leaf) => new View(leaf, this));
+	}
+
+	private registerExtensionsReplace(extensions: string[], viewType: string) {
+		/*
+		The viewRegistry manages dictionaries of file extensions and view types.
+		There's no stack, so if we replace one we should put the old one back
+		*/
+		for (const extension of extensions) {
+			const prev = this.app.viewRegistry.typeByExtension[extension];
+			this.app.viewRegistry.typeByExtension[extension] = viewType;
+			// Put back the previous registration
+			this.register(() => {
+				this.app.viewRegistry.typeByExtension[extension] = prev;
+			});
+		}
+		this.app.viewRegistry.trigger("extensions-updated");
+	}
+
 	async onload() {
 		this.adapter = this.app.vault.adapter as FileSystemAdapter;
 		await this.loadSettings();
 
+		if(Platform.isMobile)
+		{
+			this.registerViewFactory(DiagramView, DIAGRAM_VIEW_TYPE);
+			this.registerExtensionsReplace(["svg"], DIAGRAM_VIEW_TYPE);
+			this.registerExtensionsReplace(["drawio"], DIAGRAM_VIEW_TYPE);
+		}
+		
 		// 右键，在文件夹中搜索
 		this.addFileMenu();
 
@@ -129,12 +162,12 @@ export default class SparkPlugin extends Plugin {
 	}
 
 	openDialogToSelectAttachment(folderPath: string) {
-		const {dialog} = require('electron').remote
+		const { dialog } = require('electron').remote
 		dialog.showOpenDialog({
-			title:'选择附件',
+			title: '选择附件',
 			properties: ['openFile']
 		}).then((res: any) => {
-			if(res.filePaths.length <= 0) return;
+			if (res.filePaths.length <= 0) return;
 			this.addAttachmentToCurrentFolder(res.filePaths[0], folderPath)
 		}).catch((err: any) => {
 			console.error(err);

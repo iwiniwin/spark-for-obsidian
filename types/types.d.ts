@@ -11,6 +11,8 @@ declare module "obsidian" {
     export interface ViewRegistry {
         viewByType: Record<string, (leaf: WorkspaceLeaf) => unknown>;
         isExtensionRegistered(extension: string): boolean;
+        trigger(eventName: string, ...args: any[]): void;
+        typeByExtension: { [key: string]: string };
     }
     export interface App {
         viewRegistry: ViewRegistry;
@@ -73,5 +75,8 @@ declare module "obsidian" {
         vChildren: VirtualChildren;
         childrenEl?: HTMLElement;
         sorter?: Sortable;
+      }
+      export interface MarkdownView {
+        actionsEl: HTMLElement;
       }
 }
